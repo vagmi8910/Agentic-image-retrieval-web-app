@@ -1,3 +1,4 @@
+setuptools
 torch
 torchvision
 open_clip_torch
@@ -8,5 +9,4 @@ scikit-learn
 regex
 ftfy
 tqdm
-# Required for OpenAI CLIP if your agents use it
 git+https://github.com/openai/CLIP.git
