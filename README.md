@@ -31,7 +31,7 @@ A local, open-source image retrieval system using Vision-Language models (OpenCL
 
 - **Frontend**: Streamlit
 - **Backend**: Python
-- **ML Model**: OpenCLIP (`ViT-B-32`)
+- **ML Model**: OpenCLIP (`ViT-L-14`)
 - **Embeddings**: Stored as Pickle files in `embeddings/`
 
 ## Agents
