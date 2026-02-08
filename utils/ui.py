@@ -1,6 +1,12 @@
 import streamlit as st
 import base64
 from io import BytesIO
+from PIL import Image
+
+# -----------------------------------------------------------------------------
+# 1. SETUP & STYLE LOADING
+# -----------------------------------------------------------------------------
+st.set_page_config(page_title="Neon Image Search", layout="wide")
 
 def load_custom_css():
     """
@@ -15,13 +21,12 @@ def load_custom_css():
             --bg-dark: #0a0a0f;
             --primary-neon: #00f2ff; /* Cyan Neon */
             --secondary-neon: #ff007f; /* Hot Pink Neon */
-            --glass-bg: rgba(15, 23, 42, 0.6); /* Dark semi-transparent background */
+            --glass-bg: rgba(15, 23, 42, 0.6);
             --glass-border: rgba(255, 255, 255, 0.1);
             --text-main: #ffffff;
-            --text-bright: #e2e8f0;
         }
 
-        /* FORCE ALL TEXT TO BE WHITE/READABLE */
+        /* FORCE ALL TEXT TO BE WHITE */
         html, body, [class*="css"], .stApp {
             font-family: 'Outfit', sans-serif;
             color: var(--text-main) !important;
@@ -33,7 +38,6 @@ def load_custom_css():
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
         }
-        
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -57,34 +61,45 @@ def load_custom_css():
             color: #ffffff !important;
         }
 
-        /* --- INPUT FIELDS (SEARCH BOX FIX) --- */
+        /* --- INPUT FIELDS & SEARCH BOX --- */
         .stTextInput > div > div > input {
-            background-color: #1e1e2e !important;  /* Dark background for contrast */
-            color: #ffffff !important;             /* WHITE TEXT - High Visibility */
+            background-color: #1e1e2e !important;
+            color: #ffffff !important;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 12px;
             padding: 12px 16px;
-            font-size: 1rem;
         }
-
-        /* Styling when you click inside the box */
         .stTextInput > div > div > input:focus {
             background-color: #252540 !important;
             border-color: var(--primary-neon) !important;
             box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
             color: #ffffff !important;
         }
-
-        /* Placeholder text color */
-        .stTextInput input::placeholder {
-            color: #94a3b8 !important;
-            opacity: 0.8;
-        }
-        
-        /* The Label above the input box */
         .stTextInput label {
             color: var(--primary-neon) !important;
             font-size: 1rem;
+            font-weight: 700;
+        }
+
+        /* --- FILE UPLOADER FIX (CRITICAL) --- */
+        [data-testid="stFileUploader"] {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px dashed var(--primary-neon);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        [data-testid="stFileUploader"] section {
+            background-color: transparent !important;
+        }
+        /* The text "Drag and drop file here" */
+        [data-testid="stFileUploader"] span {
+            color: white !important; 
+        }
+        /* The "Browse files" button */
+        [data-testid="stFileUploader"] button {
+            background: var(--primary-neon);
+            color: black !important;
+            border: none;
             font-weight: 700;
         }
 
@@ -99,15 +114,14 @@ def load_custom_css():
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             transition: all 0.3s ease;
         }
-
         .stButton > button:hover {
             transform: scale(1.05);
             box-shadow: 0 0 25px rgba(255, 0, 127, 0.6);
         }
 
-        /* --- RESULT CARD STYLING --- */
+        /* --- RESULT CARD --- */
         .result-card {
-            background: rgba(15, 23, 42, 0.8); /* Dark card background */
+            background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
@@ -116,28 +130,19 @@ def load_custom_css():
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             transition: transform 0.3s ease;
         }
-
         .result-card:hover {
             transform: translateY(-5px);
             border-color: var(--primary-neon);
             box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
         }
-
         .result-card h4 {
             color: #ffffff !important;
             font-weight: 700;
             margin: 10px 0 5px 0 !important;
         }
-        
-        .result-card p {
-            color: #cbd5e1 !important; /* Light gray for subtitles */
-            font-size: 0.9rem !important;
-            margin: 0 !important;
-        }
-
         .score-pill {
             background: var(--primary-neon);
-            color: #000 !important; /* Black text on neon background */
+            color: #000 !important;
             padding: 4px 12px;
             border-radius: 20px;
             font-weight: 800;
@@ -145,13 +150,17 @@ def load_custom_css():
             box-shadow: 0 0 10px var(--primary-neon);
         }
 
-        /* Hide default Streamlit elements */
+        /* Hide Streamlit Branding */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
         
     </style>
     """, unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# 2. HELPER FUNCTIONS
+# -----------------------------------------------------------------------------
 
 def img_to_base64(image):
     """Converts a PIL Image to a base64 string."""
@@ -180,7 +189,7 @@ def display_result_card(idx, image, filename, score):
                 {filename}
             </h4>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p style="margin: 0;">
+                <p style="margin: 0; color: #cbd5e1; font-size: 0.9rem;">
                     <span style="color: #00f2ff;">●</span> Image ID: {idx}
                 </p>
                 <a href="data:image/jpeg;base64,{img_str}" download="{filename}" style="text-decoration: none;">
@@ -205,3 +214,58 @@ def display_result_card(idx, image, filename, score):
     </div>
     """
     st.markdown(html_code, unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# 3. MAIN APP LOGIC (The part that makes the drop-down visible)
+# -----------------------------------------------------------------------------
+
+def main():
+    load_custom_css()
+
+    st.title("⚡ Neon Image Retrieval")
+    st.markdown("Upload an image below to find similar matches from the database.")
+
+    # --- SIDEBAR (Where upload usually lives) ---
+    with st.sidebar:
+        st.header("Upload Query")
+        
+        # This is the File Uploader (Drop-down menu)
+        uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+        
+        if uploaded_file is not None:
+            # Display preview of uploaded image
+            image = Image.open(uploaded_file)
+            st.image(image, caption='Query Image', use_container_width=True)
+            
+            # Button to trigger search
+            if st.button("🔍 Search Database"):
+                st.session_state['searching'] = True
+                # Here you would call your backend search function
+                # results = your_search_function(image)
+
+    # --- MAIN CONTENT AREA ---
+    
+    # Example Logic: If user uploaded, show results. 
+    # REPLACE THIS MOCK DATA WITH YOUR REAL BACKEND LOGIC
+    if uploaded_file is not None and st.session_state.get('searching'):
+        st.subheader("Results Found")
+        
+        # Creating columns for grid layout
+        col1, col2, col3 = st.columns(3)
+        
+        # Mock Results (Delete this when connecting to your real model)
+        # Using the uploaded image just to demonstrate the card display
+        mock_img = Image.open(uploaded_file) 
+        
+        with col1:
+            display_result_card(101, mock_img, "found_result_1.jpg", 0.98)
+        with col2:
+            display_result_card(102, mock_img, "found_result_2.jpg", 0.85)
+        with col3:
+            display_result_card(103, mock_img, "found_result_3.jpg", 0.72)
+
+    elif uploaded_file is None:
+        st.info("👋 Please upload an image in the sidebar to start searching.")
+
+if __name__ == "__main__":
+    main()
